@@ -1,0 +1,189 @@
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+}
+
+body{
+background:#fafafa;
+}
+
+.home{
+max-width:1400px;
+margin:auto;
+}
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:30px 80px;
+}
+
+.logo{
+font-size:30px;
+font-weight:700;
+color:#3b5bff;
+}
+
+.navbar ul{
+display:flex;
+gap:40px;
+list-style:none;
+color:#555;
+}
+
+.nav-buttons{
+display:flex;
+gap:15px;
+}
+
+.login-btn{
+padding:12px 20px;
+border:1px solid #ddd;
+background:white;
+border-radius:10px;
+cursor:pointer;
+}
+
+.start-btn{
+padding:12px 22px;
+background:#3b5bff;
+color:white;
+border:none;
+border-radius:10px;
+cursor:pointer;
+}
+
+/* HERO */
+
+.hero{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:70px 80px;
+}
+
+.left{
+width:50%;
+}
+
+.tag{
+color:#3b5bff;
+font-weight:600;
+}
+
+.left h1{
+font-size:80px;
+font-weight:800;
+line-height:90px;
+margin-top:20px;
+}
+
+.left h1 span{
+color:#3b5bff;
+}
+
+.left p{
+margin-top:25px;
+color:#666;
+font-size:18px;
+line-height:35px;
+max-width:500px;
+}
+
+.hero-buttons{
+margin-top:40px;
+display:flex;
+gap:20px;
+}
+
+.primary{
+background:#3b5bff;
+color:white;
+border:none;
+padding:16px 28px;
+border-radius:15px;
+font-size:16px;
+cursor:pointer;
+}
+
+.secondary{
+padding:16px 28px;
+background:white;
+border:1px solid #ddd;
+border-radius:15px;
+cursor:pointer;
+}
+
+/* RIGHT */
+
+.right{
+position:relative;
+width:500px;
+height:500px;
+}
+
+.circle{
+width:350px;
+height:350px;
+background:#6c63ff;
+border-radius:50%;
+position:absolute;
+right:50px;
+top:50px;
+}
+
+.hero-card{
+background:white;
+box-shadow:0 15px 40px rgba(0,0,0,.1);
+border-radius:25px;
+position:absolute;
+padding:30px;
+}
+
+.profile-card{
+width:280px;
+height:320px;
+top:70px;
+right:80px;
+}
+
+.chat-card{
+bottom:120px;
+left:20px;
+}
+
+.request-card{
+top:120px;
+right:-30px;
+}
+
+/* FEATURES */
+
+.features{
+display:flex;
+justify-content:space-around;
+padding:100px 80px;
+}
+
+.feature{
+display:flex;
+gap:20px;
+align-items:center;
+}
+
+.icon{
+width:60px;
+height:60px;
+background:black;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+border-radius:50%;
+font-size:25px;
+}
