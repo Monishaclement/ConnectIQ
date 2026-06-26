@@ -1,0 +1,86 @@
+.connections-page {
+  max-width: 800px;
+}
+
+.conn-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.conn-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text-secondary);
+}
+
+.conn-tabs button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.conn-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.conn-tabs button:not(.active) .conn-tab-count {
+  background: var(--border-light);
+  color: var(--text-secondary);
+}
+
+.conn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conn-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.conn-info {
+  flex: 1;
+}
+
+.conn-info strong {
+  font-size: 14px;
+  display: block;
+}
+
+.conn-info p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.conn-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .conn-item {
+    flex-wrap: wrap;
+  }
+
+  .conn-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

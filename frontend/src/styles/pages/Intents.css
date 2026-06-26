@@ -1,0 +1,168 @@
+.intents-page {
+  max-width: 1100px;
+}
+
+.intents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.intents-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.intents-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.intents-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.intents-tabs {
+  display: flex;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.intents-tabs button {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.intents-tabs button.active {
+  background: var(--primary);
+  color: white;
+}
+
+.intents-filter {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--white);
+  cursor: pointer;
+}
+
+.intents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.intent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.intent-form-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.intent-form-select,
+.intent-form-textarea {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.intent-form-textarea {
+  resize: vertical;
+}
+
+.intent-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.intent-details-card {
+  padding: 32px;
+  margin-top: 16px;
+}
+
+.back-link {
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.intent-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.intent-details-card h1 {
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.intent-details-desc {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.intent-details-skills h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.intent-details-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.intent-details-user p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.intent-not-found {
+  padding: 60px;
+  text-align: center;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .intents-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .intents-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

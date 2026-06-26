@@ -1,0 +1,29 @@
+.spinner {
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.spinner-md {
+  width: 36px;
+  height: 36px;
+}
+
+.spinner-lg {
+  width: 48px;
+  height: 48px;
+}
+
+.spinner-fullpage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  width: 100%;
+}
