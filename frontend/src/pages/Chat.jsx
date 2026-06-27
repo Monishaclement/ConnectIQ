@@ -7,6 +7,7 @@ import EmojiPicker from "../components/chat/EmojiPicker";
 import EmptyState from "../components/common/EmptyState";
 import { getMessages, saveMessages } from "../utils/storage";
 import { formatTime } from "../utils/formatters";
+import { getMessageHistory } from "../api/messageApi";
 import "../styles/pages/Chat.css";
 
 export default function Chat() {
@@ -19,20 +20,45 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const typingTimeout = useRef(null);
 
-  const chatPartners = connections.accepted.map((c) => c.userId);
+  const chatPartners = connections.accepted.map((c) => ({
+    userId: c.userId || c.user?._id,
+    user: c.user,
+  })).filter((c) => c.userId);
+
+  const normalizeMessages = (items, partnerId) =>
+    items.map((item) => ({
+      text: item.message || item.text,
+      fromMe: item.fromMe ?? item.sender === user._id,
+      timestamp: item.createdAt || item.timestamp,
+      partnerId,
+    }));
 
   useEffect(() => {
-    if (activeChat) {
-      setMessages(getMessages(user._id, activeChat));
-    }
+    if (!activeChat) return;
+
+    let mounted = true;
+
+    getMessageHistory(activeChat)
+      .then((res) => {
+        const normalized = normalizeMessages(res.data || [], activeChat);
+        saveMessages(user._id, activeChat, normalized);
+        if (mounted) setMessages(normalized);
+      })
+      .catch(() => {
+        if (mounted) setMessages(getMessages(user._id, activeChat));
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [activeChat, user._id]);
 
   useEffect(() => {
-    const handler = ({ fromUserId, message: msg }) => {
+    const handler = ({ fromUserId, message: msg, createdAt }) => {
       if (fromUserId === activeChat) {
         const updated = [
           ...getMessages(user._id, activeChat),
-          { text: msg, fromMe: false, timestamp: new Date().toISOString() },
+          { text: msg, fromMe: false, timestamp: createdAt || new Date().toISOString() },
         ];
         saveMessages(user._id, activeChat, updated);
         setMessages(updated);
@@ -40,7 +66,7 @@ export default function Chat() {
         const existing = getMessages(user._id, fromUserId);
         saveMessages(user._id, fromUserId, [
           ...existing,
-          { text: msg, fromMe: false, timestamp: new Date().toISOString() },
+          { text: msg, fromMe: false, timestamp: createdAt || new Date().toISOString() },
         ]);
       }
     };
@@ -55,7 +81,6 @@ export default function Chat() {
   const selectChat = (partnerId) => {
     setActiveChat(partnerId);
     setSearchParams({ user: partnerId });
-    setMessages(getMessages(user._id, partnerId));
   };
 
   const handleSend = () => {
@@ -92,7 +117,8 @@ export default function Chat() {
         {chatPartners.length === 0 ? (
           <p className="chat-empty-list">Connect with people to start chatting</p>
         ) : (
-          chatPartners.map((partnerId) => {
+          chatPartners.map((partner) => {
+            const partnerId = partner.userId;
             const msgs = getMessages(user._id, partnerId);
             const last = msgs[msgs.length - 1];
             return (
@@ -101,9 +127,9 @@ export default function Chat() {
                 className={`chat-list-item ${activeChat === partnerId ? "active" : ""}`}
                 onClick={() => selectChat(partnerId)}
               >
-                <Avatar name="User" size="md" online={isOnline(partnerId)} />
+                <Avatar src={partner.user?.profileImage} name={partner.user?.name || "User"} size="md" online={isOnline(partnerId)} />
                 <div className="chat-list-info">
-                  <strong>User {partnerId.slice(-4)}</strong>
+                  <strong>{partner.user?.name || `User ${partnerId.slice(-4)}`}</strong>
                   <span>{last ? last.text.slice(0, 30) : "No messages yet"}</span>
                 </div>
               </button>

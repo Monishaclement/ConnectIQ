@@ -10,6 +10,12 @@ import Input from "../components/common/Input";
 import { INTENT_CATEGORIES } from "../utils/constants";
 import { parseTags } from "../utils/formatters";
 import { getUserIntents, saveUserIntents, getStorage } from "../utils/storage";
+import {
+  getIntents,
+  createIntent,
+  updateIntent,
+  deleteIntent,
+} from "../api/intentApi";
 import { useToast } from "../context/ToastContext";
 import "../styles/pages/Intents.css";
 
@@ -27,15 +33,37 @@ export default function Intents() {
 
   useEffect(() => {
     loadIntents();
-  }, [user]);
+  }, [user, debouncedSearch, category]);
 
-  const loadIntents = () => {
-    const mine = getUserIntents(user._id);
-    const allUsers = getStorage("connectiq_intents", {});
-    const allIntents = Object.entries(allUsers).flatMap(([uid, items]) =>
-      items.map((i) => ({ ...i, userId: uid, userName: uid === user._id ? user.name : i.userName || "User" }))
-    );
-    setIntents(allIntents.length ? allIntents : mine.map((i) => ({ ...i, userId: user._id, userName: user.name })));
+  const normalizeIntent = (intent) => ({
+    ...intent,
+    userId: intent.user?._id || intent.userId || intent.user,
+    userName: intent.user?.name || intent.userName || "User",
+  });
+
+  const cacheMyIntents = (items) => {
+    saveUserIntents(user._id, items.filter((i) => i.userId === user._id));
+  };
+
+  const loadIntents = async () => {
+    try {
+      const params = {};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (category) params.category = category;
+
+      const res = await getIntents(params);
+      const normalized = (res.data || []).map(normalizeIntent);
+      setIntents(normalized);
+      cacheMyIntents(normalized);
+    } catch {
+      const mine = getUserIntents(user._id);
+      const allUsers = getStorage("connectiq_intents", {});
+      const allIntents = Object.entries(allUsers).flatMap(([uid, items]) =>
+        items.map((i) => ({ ...i, userId: uid, userName: uid === user._id ? user.name : i.userName || "User" }))
+      );
+      setIntents(allIntents.length ? allIntents : mine.map((i) => ({ ...i, userId: user._id, userName: user.name })));
+      showError("Using saved intents because the server could not be reached");
+    }
   };
 
   const myIntents = intents.filter((i) => i.userId === user._id);
@@ -68,37 +96,42 @@ export default function Intents() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title.trim()) {
       showError("Title is required");
       return;
     }
     const intentData = {
-      _id: editing?._id || `intent_${Date.now()}`,
       type: form.type,
       title: form.title,
       description: form.description,
       requiredSkills: parseTags(form.requiredSkills),
       isActive: true,
-      createdAt: editing?.createdAt || new Date().toISOString(),
-      userName: user.name,
     };
 
-    const mine = getUserIntents(user._id);
-    const updated = editing
-      ? mine.map((i) => (i._id === editing._id ? intentData : i))
-      : [...mine, intentData];
-    saveUserIntents(user._id, updated);
-    loadIntents();
-    setModalOpen(false);
-    success(editing ? "Intent updated!" : "Intent created!");
+    try {
+      if (editing) {
+        await updateIntent(editing._id, intentData);
+      } else {
+        await createIntent(intentData);
+      }
+
+      await loadIntents();
+      setModalOpen(false);
+      success(editing ? "Intent updated!" : "Intent created!");
+    } catch (err) {
+      showError(err.response?.data?.message || "Failed to save intent");
+    }
   };
 
-  const handleDelete = (id) => {
-    const mine = getUserIntents(user._id).filter((i) => i._id !== id);
-    saveUserIntents(user._id, mine);
-    loadIntents();
-    success("Intent deleted");
+  const handleDelete = async (id) => {
+    try {
+      await deleteIntent(id);
+      await loadIntents();
+      success("Intent deleted");
+    } catch (err) {
+      showError(err.response?.data?.message || "Failed to delete intent");
+    }
   };
 
   const displayList = tab === "my" ? filterIntents(myIntents) : filterIntents(browseIntents);

@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const Connection = require("../models/Connection");
 const Message = require("../models/Message");
+const { areConnected } = require("../controllers/message.controller");
 
 let onlineUsers = new Map(); // userId -> socketId
 
@@ -33,6 +34,7 @@ const socketHandler = (io) => {
     onlineUsers.set(userId, socket.id);
 
     // notify others
+    socket.broadcast.emit("user_connected", { userId });
     socket.broadcast.emit("user_online", { userId });
 
     // SEND CONNECTION REQUEST
@@ -40,13 +42,30 @@ const socketHandler = (io) => {
       try {
         const fromUserId = userId;
 
-        // prevent duplicate request
         const existing = await Connection.findOne({
-          requester: fromUserId,
-          receiver: toUserId,
+          $or: [
+            { requester: fromUserId, receiver: toUserId },
+            { requester: toUserId, receiver: fromUserId },
+          ],
         });
 
-        if (existing) return;
+        if (existing) {
+          if (
+            existing.status === "pending" &&
+            existing.requester.toString() === fromUserId &&
+            existing.receiver.toString() === toUserId
+          ) {
+            const targetSocket = onlineUsers.get(toUserId);
+            if (targetSocket) {
+              io.to(targetSocket).emit("receive_request", {
+                fromUserId,
+                userId: fromUserId,
+                requestId: existing._id,
+              });
+            }
+          }
+          return;
+        }
 
         // save request
         const request = await Connection.create({
@@ -60,6 +79,7 @@ const socketHandler = (io) => {
         if (targetSocket) {
           io.to(targetSocket).emit("receive_request", {
             fromUserId,
+            userId: fromUserId,
             requestId: request._id,
           });
         }
@@ -74,6 +94,7 @@ const socketHandler = (io) => {
         const request = await Connection.findById(requestId);
 
         if (!request) return;
+        if (request.receiver.toString() !== userId) return;
 
         request.status = "accepted";
 
@@ -85,7 +106,33 @@ const socketHandler = (io) => {
 
         if (requesterSocket) {
           io.to(requesterSocket).emit("request_accepted", {
-            fromUserId: request.receiver,
+            fromUserId: request.receiver.toString(),
+            userId: request.receiver.toString(),
+            requestId: request._id,
+          });
+        }
+      } catch (err) {
+        console.log(err.message);
+      }
+    });
+
+    // REJECT REQUEST
+    socket.on("reject_request", async ({ requestId }) => {
+      try {
+        const request = await Connection.findById(requestId);
+
+        if (!request) return;
+        if (request.receiver.toString() !== userId) return;
+
+        request.status = "rejected";
+        await request.save();
+
+        const requesterSocket = onlineUsers.get(request.requester.toString());
+
+        if (requesterSocket) {
+          io.to(requesterSocket).emit("request_rejected", {
+            fromUserId: request.receiver.toString(),
+            requestId: request._id,
           });
         }
       } catch (err) {
@@ -98,8 +145,11 @@ const socketHandler = (io) => {
       try {
         const fromUserId = userId;
 
+        const connected = await areConnected(fromUserId, toUserId);
+        if (!connected) return;
+
         // save message
-        await Message.create({
+        const savedMessage = await Message.create({
           sender: fromUserId,
           receiver: toUserId,
           message,
@@ -112,10 +162,25 @@ const socketHandler = (io) => {
           io.to(targetSocket).emit("receive_message", {
             fromUserId,
             message,
+            createdAt: savedMessage.createdAt,
           });
         }
       } catch (err) {
         console.log(err.message);
+      }
+    });
+
+    socket.on("typing", ({ toUserId }) => {
+      const targetSocket = onlineUsers.get(toUserId);
+      if (targetSocket) {
+        io.to(targetSocket).emit("typing", { fromUserId: userId });
+      }
+    });
+
+    socket.on("stop_typing", ({ toUserId }) => {
+      const targetSocket = onlineUsers.get(toUserId);
+      if (targetSocket) {
+        io.to(targetSocket).emit("stop_typing", { fromUserId: userId });
       }
     });
 

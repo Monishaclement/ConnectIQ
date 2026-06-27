@@ -14,6 +14,13 @@ import {
   saveNotifications,
 } from "../utils/storage";
 import { NOTIFICATION_TYPES } from "../utils/constants";
+import {
+  getConnections as fetchConnections,
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  rejectConnectionRequest,
+  removeConnectionRequest,
+} from "../api/connectionApi";
 
 const SocketContext = createContext(null);
 
@@ -26,6 +33,25 @@ export const SocketProvider = ({ children }) => {
     accepted: [],
   });
   const [typingUsers, setTypingUsers] = useState({});
+
+  const normalizeConnections = useCallback((data) => ({
+    pending: data?.pending || [],
+    sent: data?.sent || [],
+    accepted: data?.accepted || [],
+  }), []);
+
+  const loadConnections = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const res = await fetchConnections();
+      const normalized = normalizeConnections(res.data);
+      setConnections(normalized);
+      saveConnections(user._id, normalized);
+    } catch {
+      setConnections(getConnections(user._id));
+    }
+  }, [user, normalizeConnections]);
 
   const addNotification = useCallback(
     (notification) => {
@@ -49,8 +75,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const stored = getConnections(user._id);
-    setConnections(stored);
+    loadConnections();
 
     socket.connect();
 
@@ -72,12 +97,13 @@ export const SocketProvider = ({ children }) => {
           ...prev,
           pending: [
             ...prev.pending.filter((p) => p.requestId !== requestId),
-            { fromUserId, requestId, createdAt: new Date().toISOString() },
+            { fromUserId, userId: fromUserId, requestId, createdAt: new Date().toISOString() },
           ],
         };
         saveConnections(user._id, updated);
         return updated;
       });
+      loadConnections();
       addNotification({
         type: NOTIFICATION_TYPES.CONNECTION,
         message: "You received a new connection request",
@@ -99,6 +125,7 @@ export const SocketProvider = ({ children }) => {
         saveConnections(user._id, updated);
         return updated;
       });
+      loadConnections();
       addNotification({
         type: NOTIFICATION_TYPES.CONNECTION,
         message: "Your connection request was accepted",
@@ -128,6 +155,7 @@ export const SocketProvider = ({ children }) => {
     };
 
     socket.on("user_online", handleOnline);
+    socket.on("user_connected", handleOnline);
     socket.on("user_offline", handleOffline);
     socket.on("receive_request", handleReceiveRequest);
     socket.on("request_accepted", handleRequestAccepted);
@@ -137,6 +165,7 @@ export const SocketProvider = ({ children }) => {
 
     return () => {
       socket.off("user_online", handleOnline);
+      socket.off("user_connected", handleOnline);
       socket.off("user_offline", handleOffline);
       socket.off("receive_request", handleReceiveRequest);
       socket.off("request_accepted", handleRequestAccepted);
@@ -145,25 +174,30 @@ export const SocketProvider = ({ children }) => {
       socket.off("stop_typing", handleStopTyping);
       socket.disconnect();
     };
-  }, [isAuthenticated, user, addNotification]);
+  }, [isAuthenticated, user, addNotification, loadConnections]);
 
-  const sendRequest = (toUserId) => {
+  const sendRequest = async (toUserId) => {
     if (!user) return;
-    socket.emit("send_request", { toUserId });
+    const res = await sendConnectionRequest(toUserId);
+    const request = res.data;
+
     setConnections((prev) => {
       const updated = {
         ...prev,
         sent: [
           ...prev.sent.filter((s) => s.toUserId !== toUserId),
-          { toUserId, createdAt: new Date().toISOString() },
+          request,
         ],
       };
       saveConnections(user._id, updated);
       return updated;
     });
+    socket.emit("send_request", { toUserId });
+    return request;
   };
 
-  const acceptRequest = (requestId, fromUserId) => {
+  const acceptRequest = async (requestId, fromUserId) => {
+    const res = await acceptConnectionRequest(requestId);
     socket.emit("accept_request", { requestId });
     setConnections((prev) => {
       const updated = {
@@ -171,15 +205,18 @@ export const SocketProvider = ({ children }) => {
         pending: prev.pending.filter((p) => p.requestId !== requestId),
         accepted: [
           ...prev.accepted.filter((a) => a.userId !== fromUserId),
-          { userId: fromUserId, createdAt: new Date().toISOString() },
+          res.data,
         ],
       };
       saveConnections(user._id, updated);
       return updated;
     });
+    return res.data;
   };
 
-  const rejectRequest = (requestId) => {
+  const rejectRequest = async (requestId) => {
+    await rejectConnectionRequest(requestId);
+    socket.emit("reject_request", { requestId });
     setConnections((prev) => {
       const updated = {
         ...prev,
@@ -190,7 +227,8 @@ export const SocketProvider = ({ children }) => {
     });
   };
 
-  const removeConnection = (userId) => {
+  const removeConnection = async (userId) => {
+    await removeConnectionRequest(userId);
     setConnections((prev) => {
       const updated = {
         ...prev,
@@ -231,6 +269,7 @@ export const SocketProvider = ({ children }) => {
         emitStopTyping,
         isOnline,
         setConnections,
+        loadConnections,
       }}
     >
       {children}

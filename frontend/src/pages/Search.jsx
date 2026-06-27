@@ -5,6 +5,7 @@ import { useSocket } from "../context/SocketContext";
 import { useToast } from "../context/ToastContext";
 import { getRecommendations } from "../api/userApi";
 import { reportUser } from "../api/reportApi";
+import { getIntents } from "../api/intentApi";
 import SearchBar from "../components/common/SearchBar";
 import RecommendationCard from "../components/recommendation/RecommendationCard";
 import ReportModal from "../components/trust/ReportModal";
@@ -41,9 +42,10 @@ export default function Search() {
     try {
       const res = await getRecommendations();
       setUsers(res.data || []);
-      const allIntents = getUserIntents(user._id);
-      setIntents(allIntents);
+      const intentRes = await getIntents({ mine: "all" });
+      setIntents(intentRes.data || []);
     } catch {
+      setIntents(getUserIntents(user._id));
       showError("Failed to load search data");
     } finally {
       setLoading(false);
@@ -157,7 +159,14 @@ export default function Search() {
                     <RecommendationCard
                       userData={r}
                       score={r.score}
-                      onConnect={sendRequest}
+                      onConnect={async (userId) => {
+                        try {
+                          await sendRequest(userId);
+                          success("Connection request sent!");
+                        } catch (err) {
+                          showError(err.response?.data?.message || "Failed to send request");
+                        }
+                      }}
                       onReport={setReportTarget}
                       connected={connectedIds.has(r.user._id)}
                       sent={sentIds.has(r.user._id)}

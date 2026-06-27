@@ -1,20 +1,35 @@
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Badge from "../components/common/Badge";
 import Button from "../components/common/Button";
 import Avatar from "../components/common/Avatar";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 import { INTENT_CATEGORIES } from "../utils/constants";
 import { getUserIntents } from "../utils/storage";
 import { formatDate } from "../utils/formatters";
+import { getIntent } from "../api/intentApi";
 import "../styles/pages/Intents.css";
 
 export default function IntentDetails() {
   const { id } = useParams();
   const { user } = useAuth();
+  const [intent, setIntent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  let intent = null;
-  const mine = getUserIntents(user._id);
-  intent = mine.find((i) => i._id === id);
+  useEffect(() => {
+    getIntent(id)
+      .then((res) => setIntent(res.data))
+      .catch(() => {
+        const mine = getUserIntents(user._id);
+        setIntent(mine.find((i) => i._id === id) || null);
+      })
+      .finally(() => setLoading(false));
+  }, [id, user._id]);
+
+  if (loading) {
+    return <LoadingSpinner fullPage />;
+  }
 
   if (!intent) {
     return (
@@ -28,6 +43,7 @@ export default function IntentDetails() {
   }
 
   const category = INTENT_CATEGORIES.find((c) => c.value === intent.type);
+  const intentUser = intent.user || user;
 
   return (
     <div className="page-container intent-details animate-fade-in">
@@ -48,9 +64,9 @@ export default function IntentDetails() {
           </div>
         ) : null}
         <div className="intent-details-user">
-          <Avatar name={user.name} size="md" />
+          <Avatar src={intentUser.profileImage} name={intentUser.name} size="md" />
           <div>
-            <strong>{user.name}</strong>
+            <strong>{intentUser.name}</strong>
             <p>Intent creator</p>
           </div>
         </div>

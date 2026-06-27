@@ -63,9 +63,13 @@ export default function Recommendations() {
     return (b.score || 0) - (a.score || 0);
   });
 
-  const handleConnect = (userId) => {
-    sendRequest(userId);
-    success("Connection request sent!");
+  const handleConnect = async (userId) => {
+    try {
+      await sendRequest(userId);
+      success("Connection request sent!");
+    } catch (err) {
+      showError(err.response?.data?.message || "Failed to send connection request");
+    }
   };
 
   const handleReport = async ({ reason, description }) => {

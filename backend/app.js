@@ -6,6 +6,9 @@ const authRoutes = require("./routers/auth.routes");
 const recommendRoutes = require("./routers/recommend.routes");
 const userRoutes = require("./routers/user.routes");
 const reportRoutes = require("./routers/report.routes");
+const connectionRoutes = require("./routers/connection.routes");
+const intentRoutes = require("./routers/intent.routes");
+const messageRoutes = require("./routers/message.routes");
 
 const app = express();
 
@@ -16,6 +19,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/recommendations", recommendRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/report", reportRoutes);
+app.use("/api/connections", connectionRoutes);
+app.use("/api/intents", intentRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.get("/", (req, res) => {
   res.send("ConnectIQ Backend Running");

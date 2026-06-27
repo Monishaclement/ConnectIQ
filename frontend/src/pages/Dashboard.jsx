@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import { useNotifications } from "../context/NotificationContext";
 import { getRecommendations } from "../api/userApi";
+import { getIntents } from "../api/intentApi";
 import ProfileCompletionBar from "../components/profile/ProfileCompletionBar";
 import RecommendationCard from "../components/recommendation/RecommendationCard";
 import Avatar from "../components/common/Avatar";
@@ -20,16 +21,24 @@ export default function Dashboard() {
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [recommendations, setRecommendations] = useState([]);
+  const [intents, setIntents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRecommendations()
-      .then((res) => setRecommendations((res.data || []).slice(0, 3)))
+    Promise.all([
+      getRecommendations(),
+      getIntents({ mine: "true" }),
+    ])
+      .then(([recommendationRes, intentRes]) => {
+        setRecommendations((recommendationRes.data || []).slice(0, 3));
+        setIntents((intentRes.data || []).filter((i) => i.isActive !== false).slice(0, 3));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const intents = getUserIntents(user._id).filter((i) => i.isActive !== false).slice(0, 3);
+  const fallbackIntents = getUserIntents(user._id).filter((i) => i.isActive !== false).slice(0, 3);
+  const visibleIntents = intents.length ? intents : fallbackIntents;
   const connectedIds = new Set(connections.accepted.map((c) => c.userId));
   const sentIds = new Set(connections.sent.map((s) => s.toUserId));
 
@@ -81,11 +90,11 @@ export default function Dashboard() {
               <h2>Active Intents</h2>
               <Link to="/intents">Manage →</Link>
             </div>
-            {intents.length === 0 ? (
+            {visibleIntents.length === 0 ? (
               <p className="dash-empty">No active intents. <Link to="/intents">Create one</Link></p>
             ) : (
               <div className="dash-intent-list">
-                {intents.map((i) => (
+                {visibleIntents.map((i) => (
                   <div key={i._id} className="dash-intent-item">
                     <strong>{i.title}</strong>
                     <Badge variant="primary">{i.type}</Badge>

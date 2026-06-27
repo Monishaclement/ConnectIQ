@@ -20,18 +20,20 @@ export default function Connections() {
     { id: "accepted", label: "My Connections", count: connections.accepted.length },
   ];
 
-  const handleAccept = (req) => {
-    acceptRequest(req.requestId, req.fromUserId);
+  const getDisplayUser = (connection) => connection.user || connection.requester || connection.receiver || null;
+
+  const handleAccept = async (req) => {
+    await acceptRequest(req.requestId, req.fromUserId || req.userId);
     success("Connection accepted!");
   };
 
-  const handleReject = (req) => {
-    rejectRequest(req.requestId);
+  const handleReject = async (req) => {
+    await rejectRequest(req.requestId);
     success("Request rejected");
   };
 
-  const handleRemove = (userId) => {
-    removeConnection(userId);
+  const handleRemove = async (userId) => {
+    await removeConnection(userId);
     success("Connection removed");
   };
 
@@ -40,53 +42,68 @@ export default function Connections() {
       if (!connections.pending.length) {
         return <EmptyState icon="📬" title="No pending requests" description="When someone sends you a request, it will appear here" />;
       }
-      return connections.pending.map((req) => (
+      return connections.pending.map((req) => {
+        const displayUser = getDisplayUser(req);
+        const displayId = req.fromUserId || req.userId || displayUser?._id;
+
+        return (
         <div key={req.requestId} className="conn-item card">
-          <Avatar name="User" size="md" online={isOnline(req.fromUserId)} />
+          <Avatar src={displayUser?.profileImage} name={displayUser?.name || "User"} size="md" online={isOnline(displayId)} />
           <div className="conn-info">
-            <strong>Connection Request</strong>
-            <p>User ID: {req.fromUserId?.slice(-6)}</p>
+            <strong>{displayUser?.name || "Connection Request"}</strong>
+            <p>{displayUser?.location || `User ID: ${displayId?.slice(-6)}`}</p>
           </div>
           <div className="conn-actions">
             <Button size="sm" onClick={() => handleAccept(req)}>Accept</Button>
             <Button variant="secondary" size="sm" onClick={() => handleReject(req)}>Reject</Button>
           </div>
         </div>
-      ));
+        );
+      });
     }
 
     if (tab === "sent") {
       if (!connections.sent.length) {
         return <EmptyState icon="📤" title="No sent requests" description="Connect with recommended users to grow your network" />;
       }
-      return connections.sent.map((req) => (
-        <div key={req.toUserId} className="conn-item card">
-          <Avatar name="User" size="md" />
+      return connections.sent.map((req) => {
+        const displayUser = getDisplayUser(req);
+        const displayId = req.toUserId || req.userId || displayUser?._id;
+
+        return (
+        <div key={req.requestId || displayId} className="conn-item card">
+          <Avatar src={displayUser?.profileImage} name={displayUser?.name || "User"} size="md" />
           <div className="conn-info">
-            <strong>Request Sent</strong>
-            <p>Waiting for response</p>
+            <strong>{displayUser?.name || "Request Sent"}</strong>
+            <p>{displayUser?.location || "Waiting for response"}</p>
           </div>
           <Badge variant="warning">Pending</Badge>
         </div>
-      ));
+        );
+      });
     }
 
     if (!connections.accepted.length) {
       return <EmptyState icon="🤝" title="No connections yet" description="Start connecting with people to build your network" />;
     }
-    return connections.accepted.map((conn) => (
-      <div key={conn.userId} className="conn-item card">
-        <Avatar name="User" size="md" online={isOnline(conn.userId)} />
+    return connections.accepted.map((conn) => {
+      const displayUser = getDisplayUser(conn);
+      const displayId = conn.userId || displayUser?._id;
+
+      return (
+      <div key={displayId} className="conn-item card">
+        <Avatar src={displayUser?.profileImage} name={displayUser?.name || "User"} size="md" online={isOnline(displayId)} />
         <div className="conn-info">
-          <strong>Connected</strong>
-          <p>{isOnline(conn.userId) ? "Online" : "Offline"}</p>
+          <strong>{displayUser?.name || "Connected"}</strong>
+          <p>{isOnline(displayId) ? "Online" : displayUser?.location || "Offline"}</p>
         </div>
         <div className="conn-actions">
-          <Button size="sm" onClick={() => navigate(`/chat?user=${conn.userId}`)}>Message</Button>
-          <Button variant="danger" size="sm" onClick={() => handleRemove(conn.userId)}>Remove</Button>
+          <Button size="sm" onClick={() => navigate(`/chat?user=${displayId}`)}>Message</Button>
+          <Button variant="danger" size="sm" onClick={() => handleRemove(displayId)}>Remove</Button>
         </div>
       </div>
-    ));
+      );
+    });
   };
 
   return (
